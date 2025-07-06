@@ -1657,7 +1657,10 @@ function Login() {
 }
 
 function AdminDashboard() {
-  const posts = getPosts();
+  const [posts, setPosts] = useState([]);
+  React.useEffect(() => {
+    fetchPosts().then(setPosts);
+  }, []);
   // For demo, views/comments/published are static or zero
   const totalPosts = posts.length;
   const totalViews = 0;
