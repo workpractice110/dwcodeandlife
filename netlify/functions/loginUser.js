@@ -10,7 +10,7 @@ exports.handler = async function(event) {
   if (!username || !password) {
     return { statusCode: 400, body: 'Missing username or password' };
   }
-  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  const client = new Client({ connectionString: process.env.NETLIFY_DATABASE_URL });
   await client.connect();
   try {
     const res = await client.query(
@@ -32,4 +32,4 @@ exports.handler = async function(event) {
   } catch (err) {
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
-};
+}; 
