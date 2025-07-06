@@ -1,4 +1,4 @@
- import React, { useState, createContext, useContext } from 'react';
+import React, { useState, createContext, useContext } from 'react';
 import { Routes, Route, Link, useNavigate, Navigate, useParams, useLocation } from 'react-router-dom';
 import styled, { createGlobalStyle } from 'styled-components';
 import ReactMarkdown from 'react-markdown';
@@ -1550,17 +1550,31 @@ function EditPost() {
 }
 
 function Login() {
-  const { login } = useAuth();
+  const { setUser } = useAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const handleSubmit = e => {
+  const handleSubmit = async e => {
     e.preventDefault();
-    if (login(username, password)) {
+    setError('');
+    try {
+      const res = await fetch('/api/loginUser', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      if (!res.ok) {
+        setError('Invalid credentials!');
+        return;
+      }
+      const data = await res.json();
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', username);
+      setUser(username);
       navigate('/');
-    } else {
-      setError('Invalid credentials!');
+    } catch (err) {
+      setError('Login failed.');
     }
   };
   return (
