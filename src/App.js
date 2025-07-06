@@ -1569,11 +1569,16 @@ function Login() {
         return;
       }
       const data = await res.json();
+      if (!res.ok || !data.token) {
+        setError('Invalid credentials!');
+        return;
+      }
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', username);
       setUser(username);
       navigate('/');
     } catch (err) {
+      console.log(err);
       setError('Login failed.');
     }
   };
