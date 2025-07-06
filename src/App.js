@@ -49,7 +49,7 @@ function AuthProvider({ children }) {
     localStorage.removeItem('user');
   };
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, setUser}}>
       {children}
     </AuthContext.Provider>
   );
