@@ -102,30 +102,6 @@ const CartoonCard = styled.div`
   font-family: 'Comic Sans MS', 'Comic Sans', cursive;
 `;
 
-const SpeechBubble = styled.div`
-  position: relative;
-  background: white;
-  border-radius: 20px;
-  padding: 20px;
-  margin: 20px 0;
-  border: 4px solid var(--cartoon-coral);
-  font-family: 'Comic Sans MS', 'Comic Sans', cursive;
-  &:after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50px;
-    width: 0;
-    height: 0;
-    border: 20px solid transparent;
-    border-top-color: var(--cartoon-coral);
-    border-bottom: 0;
-    border-left: 0;
-    margin-left: -10px;
-    margin-bottom: -20px;
-  }
-`;
-
 const pageVariants = {
   initial: { opacity: 0, y: 30 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.5, type: 'spring' } },
@@ -1292,7 +1268,7 @@ function Post() {
     if (post && post.id) {
       setComments(getComments(post.id));
     }
-  }, [post && post.id]);
+  }, [post]);
   const refreshComments = () => {
     if (post && post.id) {
       setComments(getComments(post.id));
