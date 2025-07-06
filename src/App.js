@@ -1286,16 +1286,8 @@ function Post() {
   const [commentText, setCommentText] = useState('');
   const hasIncrementedView = React.useRef(false);
   React.useEffect(() => {
-    if (!id || hasIncrementedView.current) return;
-    let posts = getPosts();
-    const idx = posts.findIndex(p => String(p.id) === String(id));
-    if (idx !== -1) {
-      posts[idx].views = (posts[idx].views || 0) + 1;
-      savePosts(posts);
-      setPost({ ...posts[idx] });
-      hasIncrementedView.current = true;
-    }
-    // eslint-disable-next-line
+    if (!id) return;
+    fetchPost(id).then(setPost);
   }, [id]);
   React.useEffect(() => {
     if (post && post.id) {
