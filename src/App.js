@@ -49,7 +49,7 @@ function AuthProvider({ children }) {
     localStorage.removeItem('user');
   };
   return (
-    <AuthContext.Provider value={{ user, login, logout, setUser}}>
+    <AuthContext.Provider value={{ user, login, logout, setUser }}>
       {children}
     </AuthContext.Provider>
   );
@@ -1086,11 +1086,44 @@ function RequireAuth({ children }) {
 }
 
 // Post storage helpers
-function getPosts() {
-  return JSON.parse(localStorage.getItem('posts') || '[]');
+// Remove getPosts and savePosts helpers
+// Replace all getPosts(), savePosts() usages with API calls
+
+// Fetch all posts from API
+async function fetchPosts() {
+  const res = await fetch('/api/getPosts');
+  if (!res.ok) return [];
+  return await res.json();
 }
-function savePosts(posts) {
-  localStorage.setItem('posts', JSON.stringify(posts));
+// Fetch a single post by ID
+async function fetchPost(id) {
+  const res = await fetch(`/api/getPost?id=${id}`);
+  if (!res.ok) return null;
+  return await res.json();
+}
+// Create a new post
+async function createPost(post, token) {
+  const res = await fetch('/api/createPost', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + token
+    },
+    body: JSON.stringify(post)
+  });
+  return await res.json();
+}
+// Update a post
+async function updatePost(id, post, token) {
+  const res = await fetch('/api/updatePost', {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + token
+    },
+    body: JSON.stringify({ id, ...post })
+  });
+  return await res.json();
 }
 
 // Helper function to convert Markdown to HTML
@@ -1168,11 +1201,11 @@ function stripImagesFromMarkdown(text) {
 }
 
 function Home() {
-  const [posts, setPosts] = useState(getPosts());
+  const [posts, setPosts] = useState([]);
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
   React.useEffect(() => {
-    setPosts(getPosts());
+    fetchPosts().then(setPosts);
   }, []);
   // Filter posts by search
   const filteredPosts = posts.filter(post => {
@@ -1384,17 +1417,18 @@ function EditPost() {
   const [author, setAuthor] = useState('');
   React.useEffect(() => {
     if (editing) {
-      const post = getPosts().find(p => String(p.id) === String(id));
-      if (post) {
-        setTitle(post.title);
-        setContent(post.content);
-        setCategory(post.category || '');
-        setTags(post.tags || '');
-        setPublished(post.published !== false);
-        setExcerpt(post.excerpt || '');
-        setImagePreview(post.image || null);
-        setAuthor(post.author || '');
-      }
+      fetchPost(id).then(post => {
+        if (post) {
+          setTitle(post.title);
+          setContent(post.content);
+          setCategory(post.category || '');
+          setTags(post.tags || '');
+          setPublished(post.published !== false);
+          setExcerpt(post.excerpt || '');
+          setImagePreview(post.image || null);
+          setAuthor(post.author || '');
+        }
+      });
     }
   }, [editing, id]);
   const handleImageChange = e => {
@@ -1437,33 +1471,20 @@ function EditPost() {
       input.click();
     }
   };
-  const handleSubmit = e => {
+  const handleSubmit = async e => {
     e.preventDefault();
     if (!title.trim() || !content.trim()) return;
-    let posts = getPosts();
+    const token = localStorage.getItem('token');
+    const postData = {
+      title, content, category, tags, published, excerpt, image: imagePreview, author
+    };
     if (editing) {
-      posts = posts.map(p => String(p.id) === String(id) ? {
-        ...p, title, content, category, tags, published, excerpt, image: imagePreview, author
-      } : p);
+      await updatePost(id, postData, token);
+      navigate(`/post/${id}`);
     } else {
-      posts = [
-        {
-          id: Date.now().toString(),
-          title,
-          content,
-          category,
-          tags,
-          published,
-          excerpt,
-          image: imagePreview,
-          date: new Date().toISOString(),
-          author
-        },
-        ...posts
-      ];
+      const newPost = await createPost(postData, token);
+      navigate(`/post/${newPost.id}`);
     }
-    savePosts(posts);
-    navigate(editing ? `/post/${id}` : '/');
   };
   return (
     <CardContainer>
