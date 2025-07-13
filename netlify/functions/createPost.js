@@ -11,6 +11,8 @@ exports.handler = async function(event) {
   let data;
   try {
     data = JSON.parse(event.body);
+	console.log('create post');
+	console.log(data)
   } catch (e) {
     return {
       statusCode: 400,
