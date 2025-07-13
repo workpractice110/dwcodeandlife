@@ -1468,7 +1468,7 @@ function EditPost() {
     if (!title.trim() || !content.trim()) return;
     const token = localStorage.getItem('token');
     const postData = {
-      title, content, category, tags, published, excerpt, image: imagePreview, author
+      title, content, category, tags, published, excerpt, featured_image: imagePreview, author
     };
     if (editing) {
       await updatePost(id, postData, token);
