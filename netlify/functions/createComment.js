@@ -1,15 +1,12 @@
-const { createClient } = require('@supabase/supabase-js');
+const { Client } = require('pg');
 
-exports.handler = async function(event, context) {
+exports.handler = async function(event) {
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
       body: JSON.stringify({ error: 'Method Not Allowed' })
     };
   }
-
-  const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   let data;
   try {
@@ -29,23 +26,24 @@ exports.handler = async function(event, context) {
     };
   }
 
-  const { data: comment, error } = await supabase
-    .from('comments')
-    .insert([
-      { post_id, author, content, guest_id }
-    ])
-    .select()
-    .single();
-
-  if (error) {
+  const client = new Client({ connectionString: process.env.NETLIFY_DATABASE_URL });
+  await client.connect();
+  try {
+    const result = await client.query(
+      `INSERT INTO comments (post_id, author, content, guest_id)
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [post_id, author, content, guest_id]
+    );
+    await client.end();
+    return {
+      statusCode: 200,
+      body: JSON.stringify(result.rows[0])
+    };
+  } catch (error) {
+    await client.end();
     return {
       statusCode: 500,
       body: JSON.stringify({ error: error.message })
     };
   }
-
-  return {
-    statusCode: 200,
-    body: JSON.stringify(comment)
-  };
 }; 

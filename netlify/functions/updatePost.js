@@ -1,15 +1,12 @@
-const { createClient } = require('@supabase/supabase-js');
+const { Client } = require('pg');
 
-exports.handler = async function(event, context) {
+exports.handler = async function(event) {
   if (event.httpMethod !== 'PATCH') {
     return {
       statusCode: 405,
       body: JSON.stringify({ error: 'Method Not Allowed' })
     };
   }
-
-  const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   let data;
   try {
@@ -29,22 +26,32 @@ exports.handler = async function(event, context) {
     };
   }
 
-  const { data: post, error } = await supabase
-    .from('posts')
-    .update(fields)
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) {
+  const client = new Client({ connectionString: process.env.NETLIFY_DATABASE_URL });
+  await client.connect();
+  try {
+    // Build dynamic SET clause
+    const setClause = Object.keys(fields).map((key, i) => `${key} = $${i + 2}`).join(', ');
+    const values = [id, ...Object.values(fields)];
+    const result = await client.query(
+      `UPDATE posts SET ${setClause} WHERE id = $1 RETURNING *`,
+      values
+    );
+    await client.end();
+    if (result.rows.length === 0) {
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ error: 'Post not found' })
+      };
+    }
+    return {
+      statusCode: 200,
+      body: JSON.stringify(result.rows[0])
+    };
+  } catch (error) {
+    await client.end();
     return {
       statusCode: 500,
       body: JSON.stringify({ error: error.message })
     };
   }
-
-  return {
-    statusCode: 200,
-    body: JSON.stringify(post)
-  };
 }; 

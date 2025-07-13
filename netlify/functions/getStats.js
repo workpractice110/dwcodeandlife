@@ -1,6 +1,6 @@
-const { createClient } = require('@supabase/supabase-js');
+const { Client } = require('pg');
 
-exports.handler = async function(event, context) {
+exports.handler = async function(event) {
   if (event.httpMethod !== 'GET') {
     return {
       statusCode: 405,
@@ -8,36 +8,26 @@ exports.handler = async function(event, context) {
     };
   }
 
-  const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-  // Get post count and total views
-  const { data: posts, error: postsError } = await supabase
-    .from('posts')
-    .select('id,views');
-  if (postsError) {
+  const client = new Client({ connectionString: process.env.NETLIFY_DATABASE_URL });
+  await client.connect();
+  try {
+    // Get post count and total views
+    const postsRes = await client.query('SELECT id, views FROM posts');
+    const postCount = postsRes.rows.length;
+    const totalViews = postsRes.rows.reduce((sum, p) => sum + (p.views || 0), 0);
+    // Get comment count
+    const commentsRes = await client.query('SELECT id FROM comments');
+    const commentCount = commentsRes.rows.length;
+    await client.end();
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ postCount, commentCount, totalViews })
+    };
+  } catch (error) {
+    await client.end();
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: postsError.message })
+      body: JSON.stringify({ error: error.message })
     };
   }
-  const postCount = posts.length;
-  const totalViews = posts.reduce((sum, p) => sum + (p.views || 0), 0);
-
-  // Get comment count
-  const { data: comments, error: commentsError } = await supabase
-    .from('comments')
-    .select('id');
-  if (commentsError) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: commentsError.message })
-    };
-  }
-  const commentCount = comments.length;
-
-  return {
-    statusCode: 200,
-    body: JSON.stringify({ postCount, commentCount, totalViews })
-  };
 }; 

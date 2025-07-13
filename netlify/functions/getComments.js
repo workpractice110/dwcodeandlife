@@ -1,15 +1,12 @@
-const { createClient } = require('@supabase/supabase-js');
+const { Client } = require('pg');
 
-exports.handler = async function(event, context) {
+exports.handler = async function(event) {
   if (event.httpMethod !== 'GET') {
     return {
       statusCode: 405,
       body: JSON.stringify({ error: 'Method Not Allowed' })
     };
   }
-
-  const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   const post_id = event.queryStringParameters && event.queryStringParameters.post_id;
   if (!post_id) {
@@ -19,21 +16,20 @@ exports.handler = async function(event, context) {
     };
   }
 
-  const { data: comments, error } = await supabase
-    .from('comments')
-    .select('*')
-    .eq('post_id', post_id)
-    .order('created_at', { ascending: true });
-
-  if (error) {
+  const client = new Client({ connectionString: process.env.NETLIFY_DATABASE_URL });
+  await client.connect();
+  try {
+    const result = await client.query('SELECT * FROM comments WHERE post_id = $1 ORDER BY created_at ASC', [post_id]);
+    await client.end();
+    return {
+      statusCode: 200,
+      body: JSON.stringify(result.rows)
+    };
+  } catch (error) {
+    await client.end();
     return {
       statusCode: 500,
       body: JSON.stringify({ error: error.message })
     };
   }
-
-  return {
-    statusCode: 200,
-    body: JSON.stringify(comments)
-  };
 }; 
