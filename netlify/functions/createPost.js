@@ -19,7 +19,7 @@ exports.handler = async function(event) {
   }
 
   const { title, content, author, category, tags, published, featured_image, excerpt } = data;
-
+  console.log(data);
   const client = new Client({ connectionString: process.env.NETLIFY_DATABASE_URL });
   await client.connect();
   try {
